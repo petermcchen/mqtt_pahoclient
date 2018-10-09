@@ -20,6 +20,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -37,14 +38,21 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import java.util.ArrayList;
 
 public class PahoExampleActivity extends AppCompatActivity{
+    private final static String TAG = "PahoExampleActivity";
+    private final static boolean DEBUG = true;
     private HistoryAdapter mAdapter;
 
     MqttAndroidClient mqttAndroidClient;
 
-    final String serverUri = "tcp://iot.eclipse.org:1883";
+    //final String serverUri = "tcp://iot.eclipse.org:1883";
+    //final String serverUri = "tcp://wiz-test.kalenet.info:1883"; TODO... 世大
+    //final String serverUri = "http://smartcare.metalligence.com";
+    final String serverUri = "tcp://smartcare.metalligence.com:1883"; // For SmartCare OK.
 
     String clientId = "ExampleAndroidClient";
-    final String subscriptionTopic = "exampleAndroidTopic";
+    //final String subscriptionTopic = "exampleAndroidTopic";
+    //final String subscriptionTopic = "seda/#"; TODO...
+    final String subscriptionTopic = "smartcare/#";
     final String publishTopic = "exampleAndroidPublishTopic";
     final String publishMessage = "Hello World!";
 
@@ -80,27 +88,36 @@ public class PahoExampleActivity extends AppCompatActivity{
             public void connectComplete(boolean reconnect, String serverURI) {
 
                 if (reconnect) {
-                    addToHistory("Reconnected to : " + serverURI);
+                    //addToHistory("Reconnected to : " + serverURI);
+                    if (DEBUG)
+                        Log.d(TAG, "Reconnected to : " + serverURI);
                     // Because Clean Session is true, we need to re-subscribe
                     subscribeToTopic();
                 } else {
-                    addToHistory("Connected to: " + serverURI);
+                    //addToHistory("Connected to: " + serverURI);
+                    if (DEBUG)
+                        Log.d(TAG, "Connected to: " + serverURI);
                 }
             }
 
             @Override
             public void connectionLost(Throwable cause) {
-                addToHistory("The Connection was lost.");
+                //addToHistory("The Connection was lost.");
+                if (DEBUG)
+                    Log.d(TAG, "The Connection was lost.");
             }
 
             @Override
             public void messageArrived(String topic, MqttMessage message) throws Exception {
-                addToHistory("Incoming message: " + new String(message.getPayload()));
+                //addToHistory("Incoming message: " + new String(message.getPayload()));
+                if (DEBUG)
+                    Log.d(TAG, "Incoming message: " + new String(message.getPayload()));
             }
 
             @Override
             public void deliveryComplete(IMqttDeliveryToken token) {
-
+                if (DEBUG)
+                    Log.d(TAG, "deliveryComplete");
             }
         });
 
@@ -109,16 +126,23 @@ public class PahoExampleActivity extends AppCompatActivity{
         mqttConnectOptions.setCleanSession(false);
 
 
+        //mqttConnectOptions.setUserName("null");  TODO... 世大
+        //mqttConnectOptions.setPassword("null".toCharArray());
 
-
-
+        mqttConnectOptions.setUserName("smartcare");
+        mqttConnectOptions.setPassword("WsAmLaTrZtOcNaEre".toCharArray());
 
 
         try {
             //addToHistory("Connecting to " + serverUri);
+            if (DEBUG)
+                Log.d(TAG, " u: " + mqttConnectOptions.getUserName() + ", p: " + mqttConnectOptions.getPassword());
+
             mqttAndroidClient.connect(mqttConnectOptions, null, new IMqttActionListener() {
                 @Override
                 public void onSuccess(IMqttToken asyncActionToken) {
+                    if (DEBUG)
+                        Log.d(TAG, "Success to connect to: " + serverUri);
                     DisconnectedBufferOptions disconnectedBufferOptions = new DisconnectedBufferOptions();
                     disconnectedBufferOptions.setBufferEnabled(true);
                     disconnectedBufferOptions.setBufferSize(100);
@@ -130,7 +154,9 @@ public class PahoExampleActivity extends AppCompatActivity{
 
                 @Override
                 public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-                    addToHistory("Failed to connect to: " + serverUri);
+                    if (DEBUG)
+                        Log.d(TAG, "Failed to connect to: " + serverUri);
+                    //addToHistory("Failed to connect to: " + serverUri);
                 }
             });
 
@@ -174,11 +200,15 @@ public class PahoExampleActivity extends AppCompatActivity{
                 @Override
                 public void onSuccess(IMqttToken asyncActionToken) {
                     addToHistory("Subscribed!");
+                    if (DEBUG)
+                        Log.d(TAG, "Subscribed");
                 }
 
                 @Override
                 public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
                     addToHistory("Failed to subscribe");
+                    if (DEBUG)
+                        Log.d(TAG, "Failed to subscribe");
                 }
             });
 
@@ -187,7 +217,9 @@ public class PahoExampleActivity extends AppCompatActivity{
                 @Override
                 public void messageArrived(String topic, MqttMessage message) throws Exception {
                     // message Arrived!
-                    System.out.println("Message: " + topic + " : " + new String(message.getPayload()));
+                    //System.out.println("Message: " + topic + " : " + new String(message.getPayload()));
+                    if (DEBUG)
+                        Log.d(TAG, "Message: " + topic + " : " + new String(message.getPayload()));
                 }
             });
 
@@ -205,7 +237,10 @@ public class PahoExampleActivity extends AppCompatActivity{
             mqttAndroidClient.publish(publishTopic, message);
             addToHistory("Message Published");
             if(!mqttAndroidClient.isConnected()){
-                addToHistory(mqttAndroidClient.getBufferedMessageCount() + " messages in buffer.");
+                //addToHistory(mqttAndroidClient.getBufferedMessageCount() + " messages in buffer.");
+                if (DEBUG) {
+                    Log.d(TAG, mqttAndroidClient.getBufferedMessageCount() + " messages in buffer.");
+                }
             }
         } catch (MqttException e) {
             System.err.println("Error Publishing: " + e.getMessage());
